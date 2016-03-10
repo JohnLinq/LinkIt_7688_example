@@ -33,6 +33,14 @@ while True:
     if input == '\x4d':
         sensor_data = serial_port.read(22)
         PM_Data = bytearray( sensor_data )
+        #
+        checksum = 0x42 + 0x4d
+        for byte in PM_Data[:-2]:
+            checksum = ( checksum + byte ) & 0xFFFF
+            if checksum != ( ( PM_Data[20] << 8 ) | PM_Data[21] ):
+                print 'Checksum Error'
+                continue
+        #
         PM_2p5 = ( PM_Data[12-2] << 8 ) | PM_Data[13-2]
         PM_10p = ( PM_Data[14-2] << 8 ) | PM_Data[15-2]
         #
