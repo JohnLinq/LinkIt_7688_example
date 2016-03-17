@@ -6,8 +6,12 @@
 # Used pins for 0.96" 128*64 I2C OLED (SSD1306) are GND, 3V3, P20 (I2C SDA), P21 (I2C SCL). 
 #
 # MQTT Server: gpssensor.ddns.net
+#
+# The data can be viewed via the below services.
 # https://thingspeak.com/channels/76698
 # http://nrl.iis.sinica.edu.tw/LASS/show.php?device_id=LASS-TST_0226
+# http://iot.sparkfuture.io/static/map_pm25.html
+# http://iot.sparkfuture.io/static/map_pm25.html -> useful map!
 #
 import time
 import serial
@@ -15,11 +19,22 @@ import binascii
 import pyupm_i2clcd as upmLCD
 import httplib, urllib, mosquitto
 
+# If you want to use this source code, it is recommended to create
+# your own Device_ID, Latitude/Longitude, and ThingSpeak Write API Key.
+device_id = ('LASS-TST_0226')
+gps_lat   = ('24.280176')      # This is LASS format, it is actually GPGGA '2428.0176'.
+gps_lon   = ('122.5876537998') # This is LASS format, it is actually GPGGA '12258.76537998'.
+                               # Yonaguni Airport = 24.466960,122.979423 = 2428.0176,12258.76537998
+api_key   = ('SVQUYNSSKAHYEIVU')
+
 serial_port = serial.Serial( port="/dev/ttyS0", baudrate=9600 )
 LCD_096 = upmLCD.SSD1306(0, 0x3C);
 LCD_096.clear()
 
-mqtt_msg = ('|ver_format=3|fmt_opt=0|app=PM25|ver_app=0.7.13|device_id=LASS-TST_0226|device=LinkIt7688')
+mqtt_msg = ('|ver_format=3|fmt_opt=0|app=PM25|ver_app=0.7.13|device=LinkIt7688'
+          + '|device_id=' + device_id
+          + '|gps_lat='   + gps_lat
+          + '|gps_lon='   + gps_lon )
 mqttc = mosquitto.Mosquitto("python_pub")
 mqttc.connect("gpssensor.ddns.net", 1883)
 
@@ -55,7 +70,7 @@ while True:
                                                   + '|s_d1=' + str(PM_10p) )
         #
         params = urllib.urlencode({'field1': PM_2p5, 'field2': PM_10p, 
-                                   'key': 'SVQUYNSSKAHYEIVU'})
+                                   'key': api_key})
         conn = httplib.HTTPConnection("api.thingspeak.com:80")
         conn.request("POST", "/update", params, headers)
         response = conn.getresponse()
@@ -64,4 +79,3 @@ while True:
         #
         for x in range(0, 60):
             print binascii.b2a_hex( serial_port.read(24) )
-
